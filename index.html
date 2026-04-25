@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InsureRAG</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f7f5f0;
+  --bg2:#efece5;
+  --ink:#0e0d0b;
+  --ink2:#5a5750;
+  --ink3:#9b978e;
+  --rule:#dedad2;
+  --llama:#1a56c4;
+  --phi:#b45309;
+  --accent:#1a56c4;
+  --r:8px;
+  --F:'Geist',system-ui,sans-serif;
+  --FM:'Geist Mono',monospace;
+  --FD:'Fraunces',Georgia,serif;
+}
+
+html{scroll-behavior:smooth}
+
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--F);
+  font-size:15px;
+  line-height:1.6;
+  min-height:100vh;
+}
+
+/* ── HEADER ── */
+nav{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 48px;height:56px;
+  background:rgba(247,245,240,0.92);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--rule);
+}
+
+.nav-brand{
+  font-family:var(--FD);
+  font-size:17px;
+  font-weight:400;
+  color:var(--ink);
+  letter-spacing:-0.3px;
+}
+
+.nav-brand b{font-weight:400;color:var(--accent)}
+
+.nav-status{
+  display:flex;align-items:center;gap:7px;
+  font-family:var(--FM);font-size:11px;color:var(--ink3);
+}
+
+.dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--ink3);transition:background .4s;
+}
+.dot.ok{background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.12)}
+.dot.err{background:#dc2626}
+
+/* ── LAYOUT ── */
+.page{
+  max-width:860px;margin:0 auto;
+  padding:64px 48px 96px;
+}
+
+/* ── HERO ── */
+.hero{margin-bottom:48px}
+
+.hero-eyebrow{
+  font-family:var(--FM);font-size:10px;
+  letter-spacing:2px;text-transform:uppercase;
+  color:var(--ink3);margin-bottom:20px;
+}
+
+.hero h1{
+  font-family:var(--FD);
+  font-size:clamp(36px,5vw,58px);
+  font-weight:300;line-height:1.08;
+  letter-spacing:-2px;color:var(--ink);
+  margin-bottom:18px;
+}
+
+.hero h1 i{font-style:italic;color:var(--accent)}
+
+.hero p{
+  font-size:15px;font-weight:300;
+  color:var(--ink2);max-width:460px;line-height:1.75;
+}
+
+/* ── SEARCH ── */
+.search-block{margin-bottom:12px}
+
+.search-box{
+  display:flex;align-items:flex-end;gap:0;
+  border:1.5px solid var(--ink);border-radius:var(--r);
+  background:#fff;
+  overflow:hidden;
+  transition:box-shadow .2s;
+}
+
+.search-box:focus-within{
+  box-shadow:0 0 0 3px rgba(26,86,196,.12);
+  border-color:var(--accent);
+}
+
+textarea{
+  flex:1;border:none;outline:none;resize:none;
+  background:transparent;
+  color:var(--ink);font-family:var(--F);
+  font-size:15px;font-weight:400;line-height:1.6;
+  padding:14px 18px;
+  min-height:52px;max-height:160px;
+}
+
+textarea::placeholder{color:var(--ink3)}
+
+.go-btn{
+  flex-shrink:0;
+  background:var(--ink);color:#fff;
+  border:none;cursor:pointer;
+  font-family:var(--FM);font-size:12px;
+  font-weight:500;letter-spacing:.5px;
+  padding:0 22px;
+  height:52px;
+  transition:background .18s,opacity .18s;
+  white-space:nowrap;
+}
+
+.go-btn:hover:not(:disabled){background:#333}
+.go-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── SUGGESTIONS ── */
+.suggests{
+  display:flex;flex-wrap:wrap;gap:7px;
+  padding-top:10px;
+}
+
+.sug{
+  background:transparent;
+  border:1px solid var(--rule);
+  border-radius:100px;
+  color:var(--ink2);
+  font-family:var(--F);font-size:12px;font-weight:400;
+  padding:5px 13px;cursor:pointer;
+  transition:all .15s;
+}
+
+.sug:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:rgba(26,86,196,.04);
+}
+
+/* ── RESULTS ── */
+.results{margin-top:44px}
+
+/* empty */
+.empty-state{
+  text-align:center;padding:56px 0;
+  color:var(--ink3);font-size:14px;
+  border-top:1px solid var(--rule);
+}
+
+.empty-icon{font-size:28px;margin-bottom:12px;opacity:.4}
+
+/* tabs */
+.tabs{
+  display:flex;
+  border-bottom:1px solid var(--rule);
+  margin-bottom:0;gap:0;
+}
+
+.tab{
+  padding:12px 0;margin-right:28px;
+  font-size:13px;font-weight:500;
+  color:var(--ink3);
+  border-bottom:2px solid transparent;
+  cursor:pointer;transition:all .15s;
+  background:none;border-top:none;border-left:none;border-right:none;
+  font-family:var(--F);
+}
+
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--ink);border-bottom-color:var(--ink)}
+.tab.active.t-llama{color:var(--llama);border-bottom-color:var(--llama)}
+.tab.active.t-phi{color:var(--phi);border-bottom-color:var(--phi)}
+
+/* answer panel */
+.panel{display:none;padding:28px 0}
+.panel.show{display:block}
+
+.answer-label{
+  font-family:var(--FM);font-size:10px;
+  letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--ink3);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+
+.answer-label::after{
+  content:'';flex:1;height:1px;background:var(--rule);
+}
+
+.answer-body{
+  font-size:15px;font-weight:300;
+  line-height:1.85;color:var(--ink);
+}
+
+.answer-time{
+  margin-top:16px;
+  font-family:var(--FM);font-size:10px;color:var(--ink3);
+}
+
+/* skeleton */
+.skel{display:flex;flex-direction:column;gap:10px;padding-top:4px}
+.skel-line{
+  height:13px;border-radius:4px;
+  background:linear-gradient(90deg,var(--bg2) 25%,var(--rule) 50%,var(--bg2) 75%);
+  background-size:300% 100%;
+  animation:sh 1.4s infinite;
+}
+@keyframes sh{0%{background-position:300% 0}100%{background-position:-300% 0}}
+
+/* ── HISTORY ── */
+.hist-section{margin-top:56px;border-top:1px solid var(--rule);padding-top:32px}
+
+.hist-header{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin-bottom:20px;
+}
+
+.hist-title{
+  font-family:var(--FD);font-size:18px;
+  font-weight:300;font-style:italic;color:var(--ink2);
+}
+
+.hist-clear{
+  background:none;border:none;
+  font-family:var(--FM);font-size:10px;
+  letter-spacing:1px;text-transform:uppercase;
+  color:var(--ink3);cursor:pointer;
+  padding:4px 0;
+  transition:color .15s;
+}
+
+.hist-clear:hover{color:#dc2626}
+
+.hist-empty{
+  font-size:13px;color:var(--ink3);font-style:italic;
+}
+
+/* history item */
+.hi{
+  border:1px solid var(--rule);border-radius:var(--r);
+  margin-bottom:10px;overflow:hidden;
+  background:#fff;transition:border-color .15s;
+}
+
+.hi:hover{border-color:#ccc}
+
+.hi-q{
+  display:flex;align-items:center;gap:10px;
+  padding:13px 16px;cursor:pointer;user-select:none;
+}
+
+.hi-q-num{
+  font-family:var(--FM);font-size:10px;color:var(--ink3);
+  min-width:20px;
+}
+
+.hi-q-text{
+  flex:1;font-size:13px;font-weight:500;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.hi-arrow{
+  font-size:11px;color:var(--ink3);
+  transition:transform .2s;flex-shrink:0;
+}
+
+.hi.open .hi-arrow{transform:rotate(180deg)}
+
+.hi-body{display:none;border-top:1px solid var(--rule)}
+.hi.open .hi-body{display:block}
+
+.hi-tabs{
+  display:flex;gap:0;
+  border-bottom:1px solid var(--rule);
+  padding:0 16px;
+}
+
+.hi-tab{
+  padding:8px 0;margin-right:20px;
+  font-size:12px;color:var(--ink3);
+  border-bottom:2px solid transparent;
+  cursor:pointer;background:none;border-top:none;
+  border-left:none;border-right:none;font-family:var(--F);
+  transition:all .15s;
+}
+
+.hi-tab.active{color:var(--ink);border-bottom-color:var(--ink)}
+.hi-tab.ht-llama.active{color:var(--llama);border-bottom-color:var(--llama)}
+.hi-tab.ht-phi.active{color:var(--phi);border-bottom-color:var(--phi)}
+
+.hi-panel{display:none;padding:16px;font-size:13px;line-height:1.8;color:var(--ink);font-weight:300}
+.hi-panel.show{display:block}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  nav{padding:0 20px}
+  .page{padding:40px 20px 60px}
+  .go-btn{padding:0 16px;font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">Insure<b>RAG</b></div>
+  <div class="nav-status">
+    <div class="dot" id="dot"></div>
+    <span id="statusTxt">connecting</span>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">Insurance Policy Assistant</div>
+    <h1>Ask your<br><i>policy anything.</i></h1>
+    <p>Get answers from two AI models simultaneously — compare responses and find exactly what you need.</p>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-block">
+    <div class="search-box">
+      <textarea
+        id="qi"
+        placeholder="Ask a question about your insurance policy…"
+        rows="1"
+        oninput="resize(this)"
+        onkeydown="onKey(event)"
+      ></textarea>
+      <button class="go-btn" id="goBtn" onclick="ask()">Ask →</button>
+    </div>
+    <div class="suggests">
+      <button class="sug" onclick="fill(this)">Grace period for premium</button>
+      <button class="sug" onclick="fill(this)">Definition of critical illness</button>
+      <button class="sug" onclick="fill(this)">Dental expense treatments</button>
+      <button class="sug" onclick="fill(this)">Hospital discharge conditions</button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results" id="results">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">◎</div>
+      Type a question above to get started
+    </div>
+
+    <!-- tabs + panels (hidden until first query) -->
+    <div id="resultBlock" style="display:none">
+      <div class="tabs">
+        <button class="tab t-llama active" onclick="switchTab('llama',this)">Llama 3 · RAG</button>
+        <button class="tab t-phi" onclick="switchTab('phi',this)">Phi-2 · Fine-tuned</button>
+      </div>
+
+      <!-- Llama panel -->
+      <div class="panel show" id="panelLlama">
+        <div class="answer-label">Llama 3 response</div>
+        <div id="llamaSkel" class="skel" style="display:none">
+          <div class="skel-line" style="width:100%"></div>
+          <div class="skel-line" style="width:85%"></div>
+          <div class="skel-line" style="width:92%"></div>
+          <div class="skel-line" style="width:68%"></div>
+        </div>
+        <div class="answer-body" id="llamaAns" style="display:none"></div>
+        <div class="answer-time" id="llamaTime" style="display:none"></div>
+      </div>
+
+      <!-- Phi panel -->
+      <div class="panel" id="panelPhi">
+        <div class="answer-label">Phi-2 response</div>
+        <div id="phiSkel" class="skel" style="display:none">
+          <div class="skel-line" style="width:100%"></div>
+          <div class="skel-line" style="width:78%"></div>
+          <div class="skel-line" style="width:88%"></div>
+          <div class="skel-line" style="width:52%"></div>
+        </div>
+        <div class="answer-body" id="phiAns" style="display:none"></div>
+        <div class="answer-time" id="phiTime" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="hist-section" id="histSection" style="display:none">
+    <div class="hist-header">
+      <div class="hist-title">Previous queries</div>
+      <button class="hist-clear" onclick="clearHist()">Clear</button>
+    </div>
+    <div id="histList"></div>
+  </div>
+
+</div>
+
+<script>
+const API_URL = "https://2db6-34-124-130-37.ngrok-free.app"; 
+
+let hist = [], busy = false, activeTab = 'llama';
+
+/* ── textarea resize ── */
+function resize(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,160)+'px';
+}
+
+function onKey(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask();}
+}
+
+function fill(el){
+  const qi=document.getElementById('qi');
+  qi.value=el.textContent.trim();
+  resize(qi);qi.focus();
+}
+
+/* ── tab switching ── */
+function switchTab(name, btn){
+  activeTab=name;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panelLlama').classList.toggle('show', name==='llama');
+  document.getElementById('panelPhi').classList.toggle('show', name==='phi');
+}
+
+/* ── show loading ── */
+function startLoading(){
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('resultBlock').style.display='block';
+
+  ['llama','phi'].forEach(m=>{
+    document.getElementById(m+'Skel').style.display='flex';
+    document.getElementById(m+'Ans').style.display='none';
+    document.getElementById(m+'Time').style.display='none';
+  });
+}
+
+function setAnswer(model, text, ms){
+  document.getElementById(model+'Skel').style.display='none';
+  const a=document.getElementById(model+'Ans');
+  a.textContent=text; a.style.display='block';
+  const t=document.getElementById(model+'Time');
+  if(ms){t.textContent=`Response time: ${ms}ms`; t.style.display='block';}
+}
+
+/* ── main ask ── */
+async function ask(){
+  const q=document.getElementById('qi').value.trim();
+  if(!q||busy)return;
+
+  busy=true;
+  document.getElementById('goBtn').disabled=true;
+  startLoading();
+
+  let la='',pa='',lms=null,pms=null;
+
+  try{
+    const r1=await fetch(`${API_URL}/ask`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({query:q,mode:'llama'})
+    });
+    if(!r1.ok) throw new Error('Llama error');
+    const d1=await r1.json();
+    la=d1.answer; lms=d1.time_ms;
+    setAnswer('llama',la,lms);
+  }catch(e){
+    la='Unable to reach the API. Check your ngrok URL and Colab session.';
+    setAnswer('llama',la,null);
+  }
+
+  try{
+    const r2=await fetch(`${API_URL}/ask`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({query:q,mode:'phi'})
+    });
+    if(!r2.ok) throw new Error('Phi error');
+    const d2=await r2.json();
+    pa=d2.answer; pms=d2.time_ms;
+    setAnswer('phi',pa,pms);
+  }catch(e){
+    pa='Unable to reach the API. Check your ngrok URL and Colab session.';
+    setAnswer('phi',pa,null);
+  }
+
+  addHist(q,la,pa);
+  busy=false;
+  document.getElementById('goBtn').disabled=false;
+}
+
+/* ── history ── */
+function addHist(q,la,pa){
+  hist.unshift({q,la,pa});
+  renderHist();
+}
+
+function renderHist(){
+  const sec=document.getElementById('histSection');
+  const list=document.getElementById('histList');
+  if(hist.length===0){sec.style.display='none';return;}
+  sec.style.display='block';
+  list.innerHTML='';
+
+  hist.forEach((item,i)=>{
+    const div=document.createElement('div');
+    div.className='hi';
+    div.innerHTML=`
+      <div class="hi-q" onclick="toggleHi(${i},this.closest('.hi'))">
+        <span class="hi-q-num">${String(hist.length-i).padStart(2,'0')}</span>
+        <span class="hi-q-text">${esc(item.q)}</span>
+        <span class="hi-arrow">▾</span>
+      </div>
+      <div class="hi-body">
+        <div class="hi-tabs">
+          <button class="hi-tab ht-llama active" onclick="switchHiTab(this,'hl-${i}','hp-${i}')">Llama 3</button>
+          <button class="hi-tab ht-phi" onclick="switchHiTab(this,'hl-${i}','hp-${i}')">Phi-2</button>
+        </div>
+        <div class="hi-panel show" id="hl-${i}">${esc(item.la)}</div>
+        <div class="hi-panel" id="hp-${i}">${esc(item.pa)}</div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function toggleHi(i,el){el.classList.toggle('open')}
+
+function switchHiTab(btn, lid, pid){
+  const tabs=btn.closest('.hi-tabs').querySelectorAll('.hi-tab');
+  tabs.forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const isLlama=btn.classList.contains('ht-llama');
+  document.getElementById(lid).classList.toggle('show',isLlama);
+  document.getElementById(pid).classList.toggle('show',!isLlama);
+}
+
+function clearHist(){hist=[];renderHist();}
+
+function esc(s){
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── health check ── */
+async function ping(){
+  const dot = document.getElementById('dot');
+  const txt = document.getElementById('statusTxt');
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const r = await fetch(`${API_URL}/ask`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({query:"ping", mode:"llama"}),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    if (r.ok) {
+      dot.className = 'dot ok';
+      txt.textContent = 'connected';
+    } else {
+      dot.className = 'dot err';
+      txt.textContent = 'api error';
+    }
+
+  } catch (e) {
+    dot.className = 'dot err';
+    txt.textContent = 'not connected';
+  }
+}
+
+document.getElementById('qi').focus();
+document.getElementById('statusTxt').textContent = 'checking...';
+ping();
+setInterval(ping, 5000); // check every 5 seconds
+</script>
+</body>
+</html>

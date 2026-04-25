@@ -1,0 +1,14 @@
+docling
+transformers
+langchain
+langchain-community
+langchain-huggingface
+sentence-transformers
+faiss-cpu
+huggingface-hub
+python-dotenv
+datasets
+peft
+trl
+bitsandbytes
+accelerate
